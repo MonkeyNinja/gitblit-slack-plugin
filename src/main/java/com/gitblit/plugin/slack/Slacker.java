@@ -104,6 +104,9 @@ public class Slacker implements IManager {
 	}
 
 	public String getURL() throws IOException {
+		
+		String url = "";
+		
 		String team = runtimeManager.getSettings().getString(Plugin.SETTING_TEAM, null);
 		if (StringUtils.isEmpty(team)) {
 			throw new IOException(String.format("Could not send message to Slack because '%s' is not defined!", Plugin.SETTING_TEAM));
@@ -118,8 +121,16 @@ public class Slacker implements IManager {
 		if (StringUtils.isEmpty(hook)) {
 			hook = "incoming-webhook";
 		}
-
-		return String.format("https://%s.slack.com/services/hooks/%s?token=%s", team.toLowerCase(), hook, token);
+		
+		String webHook = runtimeManager.getSettings().getString(Plugin.SETTING_WEBHOOK_URL, null );
+		if( StringUtils.isEmpty(webHook)){
+			url = String.format("https://%s.slack.com/services/hooks/%s?token=%s", team.toLowerCase(), hook, token);
+		} else {
+			url = webHook;
+		}
+			
+		return url;
+		
 	}
 
 	/**
@@ -142,7 +153,7 @@ public class Slacker implements IManager {
 		if (!StringUtils.isEmpty(defaultChannel)) {
 			payload.setChannel(defaultChannel + "-" + repository.projectPath);
 		} else {
-			payload.setChannel(repository.projectPath);
+			payload.setChannel("#" + repository.projectPath);
 		}
 	}
 
@@ -184,6 +195,7 @@ public class Slacker implements IManager {
 	 */
 	public void send(Payload payload) throws IOException {
 		String slackUrl = getURL();
+		
 
 		payload.setUnfurlLinks(true);
 		if (StringUtils.isEmpty(payload.getUsername())) {
@@ -207,6 +219,9 @@ public class Slacker implements IManager {
 				payload.setIconEmoji(defaultEmoji);
 			}
 		}
+		
+		log.error("Slack URL");
+		log.error(slackUrl);
 
 		Gson gson = new GsonBuilder().create();
 		String json = gson.toJson(payload);
@@ -250,6 +265,8 @@ public class Slacker implements IManager {
 				}
 			}
 
+			log.error("Slack Url:");
+			log.error(slackUrl);
 			log.error("Slack plugin sent:");
 			log.error(json);
 			log.error("Slack returned:");
